@@ -1,0 +1,12 @@
+torch
+transformers
+sentence-transformers
+faiss-cpu
+pypdf2
+pdfplumber
+numpy
+requests
+python-dotenv
+flask
+werkzeug
+accelerate

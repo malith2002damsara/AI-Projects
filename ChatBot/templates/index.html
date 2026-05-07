@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG ChatBot - Ask Your PDFs</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .options {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            font-weight: 600;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border-left: 5px solid #667eea;
+        }
+
+        .result-section.active {
+            display: block;
+        }
+
+        .question-display {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .question-display strong {
+            color: #667eea;
+            display: block;
+            margin-bottom: 8px;
+        }
+
+        .answer-box {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+
+        .answer-box h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .answer-text {
+            color: #333;
+            white-space: pre-wrap;
+        }
+
+        .sources-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .sources-box h4 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .source-item {
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .source-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .error-box {
+            display: none;
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+            border-left: 5px solid #c33;
+        }
+
+        .error-box.active {
+            display: block;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .btn {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 RAG ChatBot</h1>
+            <p>PDF Documents වලින් Questions අහන්න</p>
+            <p style="font-size: 0.9em; margin-top: 5px;">Ask questions from your PDF documents</p>
+        </div>
+
+        <div class="content">
+            <div class="input-section">
+                <div class="input-group">
+                    <textarea 
+                        id="questionInput" 
+                        placeholder="ඔබේ question එක මෙහි type කරන්න... (Type your question here...)"
+                        autofocus
+                    ></textarea>
+                </div>
+
+                <div class="options">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="translateCheckbox">
+                        <span>Translate to Sinhala (සිංහලට පරිවර්තනය කරන්න)</span>
+                    </label>
+                </div>
+
+                <button class="btn" id="askButton" onclick="askQuestion()">
+                    Ask Question 🚀
+                </button>
+            </div>
+
+            <div class="loading" id="loadingDiv">
+                <div class="spinner"></div>
+                <p>Processing your question... මොහොතකින්...</p>
+            </div>
+
+            <div class="error-box" id="errorBox"></div>
+
+            <div class="result-section" id="resultSection">
+                <div class="question-display" id="questionDisplay"></div>
+                
+                <div class="answer-box">
+                    <h4>💡 Answer:</h4>
+                    <div class="answer-text" id="answerText"></div>
+                </div>
+
+                <div class="sources-box">
+                    <h4>📚 Sources / References:</h4>
+                    <div id="sourcesList"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by Phi-2 LLM + all-MiniLM-L6-v2 Embeddings</p>
+            <p style="margin-top: 5px; font-size: 12px;">100% Local Processing - Your data stays on your device</p>
+        </div>
+    </div>
+
+    <script>
+        // Enable button when textarea has content
+        document.getElementById('questionInput').addEventListener('input', function() {
+            const btn = document.getElementById('askButton');
+            btn.disabled = this.value.trim() === '';
+        });
+
+        // Allow Enter key to submit (Shift+Enter for new line)
+        document.getElementById('questionInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                askQuestion();
+            }
+        });
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const question = questionInput.value.trim();
+            
+            if (!question) {
+                showError('කරුණාකර question එකක් type කරන්න / Please enter a question');
+                return;
+            }
+
+            const translateCheckbox = document.getElementById('translateCheckbox');
+            const translate = translateCheckbox.checked;
+
+            // Show loading, hide results and errors
+            document.getElementById('loadingDiv').classList.add('active');
+            document.getElementById('resultSection').classList.remove('active');
+            document.getElementById('errorBox').classList.remove('active');
+            document.getElementById('askButton').disabled = true;
+
+            try {
+                const response = await fetch('/api/ask', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        question: question,
+                        translate: translate
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    displayResults(data);
+                } else {
+                    showError(data.error || 'An error occurred');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('loadingDiv').classList.remove('active');
+                document.getElementById('askButton').disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            // Display question
+            const questionDisplay = document.getElementById('questionDisplay');
+            questionDisplay.innerHTML = `<strong>❓ Your Question:</strong> ${escapeHtml(data.question)}`;
+
+            // Display answer
+            const answerText = document.getElementById('answerText');
+            answerText.textContent = data.answer;
+
+            // Display sources
+            const sourcesList = document.getElementById('sourcesList');
+            if (data.sources && data.sources.length > 0) {
+                sourcesList.innerHTML = data.sources.map((source, index) => `
+                    <div class="source-item">
+                        <strong>[${index + 1}]</strong> ${escapeHtml(source.filename)} 
+                        ${source.page !== 'N/A' ? `- Page ${source.page}` : ''}
+                    </div>
+                `).join('');
+            } else {
+                sourcesList.innerHTML = '<p>No sources available</p>';
+            }
+
+            // Show results
+            document.getElementById('resultSection').classList.add('active');
+            
+            // Scroll to results
+            document.getElementById('resultSection').scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+
+        function showError(message) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = '❌ ' + message;
+            errorBox.classList.add('active');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initialize
+        document.getElementById('askButton').disabled = true;
+    </script>
+</body>
+</html>
